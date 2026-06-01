@@ -747,14 +747,15 @@
       display: grid;
       grid-template-areas:
         ". up ."
-        "left . right"
+        "left pause right"
         ". down .";
       gap: 12px;
     }
+    #btn-pause { grid-area: pause; }
 
     .touch-btn {
-      width: 64px;
-      height: 64px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
       background: linear-gradient(180deg,
         #f0f0f0 0%,
@@ -804,7 +805,7 @@
     #btn-right { grid-area: right; }
 
     /* Show D-pad on touch devices or small screens */
-    @media (max-width: 1024px) {
+    @media (max-width: 1024px), (pointer: coarse) {
       #mobile-controls {
         display: block;
       }
@@ -914,6 +915,8 @@
         <div class="dpad">
           <div class="touch-btn" id="btn-up"    aria-label="Up">&#8593;</div>
           <div class="touch-btn" id="btn-left"  aria-label="Left">&#8592;</div>
+          <!-- Center Pause Button for Mobile -->
+          <div class="touch-btn" id="btn-pause" aria-label="Pause" style="font-size: 16px; font-weight: bold;">PAUSE</div>
           <div class="touch-btn" id="btn-right" aria-label="Right">&#8594;</div>
           <div class="touch-btn" id="btn-down"  aria-label="Down">&#8595;</div>
         </div>
@@ -1597,7 +1600,7 @@
     });
 
     /* ──────────────────────────────────────────────────────────────
-       TOUCH EVENT LISTENERS
+       TOUCH / POINTER EVENT LISTENERS
     ────────────────────────────────────────────────────────────── */
     const touchButtons = {
       "btn-up":    { x: 0,  y: -1 },
@@ -1609,7 +1612,7 @@
     Object.entries(touchButtons).forEach(([id, dir]) => {
       const btn = document.getElementById(id);
       
-      const handleTouch = (e) => {
+      const handleInput = (e) => {
         e.preventDefault();
         
         // Start game if on start screen
@@ -1630,8 +1633,14 @@
         }
       };
 
-      btn.addEventListener("touchstart", handleTouch, { passive: false });
-      btn.addEventListener("mousedown", handleTouch);
+      // Use pointerdown for universal support (touch, mouse, pen)
+      btn.addEventListener("pointerdown", handleInput, { passive: false });
+    });
+
+    // Mobile Pause Button
+    document.getElementById("btn-pause").addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      if (gameState.running && !gameState.gameOver) togglePause();
     });
 
     // Close modal on backdrop click

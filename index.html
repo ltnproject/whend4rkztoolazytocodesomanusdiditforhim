@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Snake — Apple</title>
+
+  <!-- ============================================================
+       SNAKE — A Classic Game, Reimagined.
+       Styled after Apple.com circa 2007 (Mac OS X Leopard era).
+       Single-file, no external dependencies.
+       ============================================================ -->
+
+  <style>
+    /* ─────────────────────────────────────────────────────────────
+       RESET & BASE
+    ───────────────────────────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       TYPOGRAPHY — Lucida Grande was Apple's signature font in 2007
+    ───────────────────────────────────────────────────────────── */
+    body {
+      font-family: "Lucida Grande", "Lucida Sans Unicode", "Trebuchet MS",
+                   Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      color: #333;
+      background: #e8e8e8;
+      /* Subtle linen-like page background matching 2007 Apple pages */
+      background-image:
+        linear-gradient(180deg, #d4d4d4 0%, #ebebeb 120px, #e0e0e0 100%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      /* Fade-in the entire page on load */
+      animation: pageFadeIn 0.7s ease-out both;
+    }
+
+    @keyframes pageFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0);   }
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       GLOBAL NAV BAR — the iconic 2007 Apple top navigation
+    ───────────────────────────────────────────────────────────── */
+    #apple-nav {
+      width: 100%;
+      background: linear-gradient(180deg,
+        #6a6a6a 0%, #4a4a4a 40%, #3a3a3a 50%, #4c4c4c 51%, #5e5e5e 100%);
+      border-bottom: 1px solid #222;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      position: relative;
+      z-index: 100;
+    }
+
+    #apple-nav ul {
+      list-style: none;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      max-width: 980px;
+      margin: 0 auto;
+      height: 22px;
+    }
+
+    #apple-nav ul li a {
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      height: 22px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #e0e0e0;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      border-left: 1px solid rgba(0,0,0,0.25);
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    #apple-nav ul li:first-child a {
+      border-left: none;
+      font-size: 14px;
+      padding: 0 16px;
+      color: #fff;
+    }
+
+    #apple-nav ul li a:hover {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       PAGE WRAPPER
+    ───────────────────────────────────────────────────────────── */
+    #page-wrapper {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       HERO HEADER — large Apple-style product header
+    ───────────────────────────────────────────────────────────── */
+    #hero {
+      text-align: center;
+      padding: 52px 20px 36px;
+      position: relative;
+    }
+
+    #hero h1 {
+      font-size: 56px;
+      font-weight: bold;
+      letter-spacing: -2px;
+      /* Classic Apple gradient text — dark charcoal to lighter gray */
+      background: linear-gradient(180deg, #111 0%, #3a3a3a 40%, #666 75%, #999 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.05;
+      text-shadow: none;
+      margin-bottom: 10px;
+      /* Subtle drop shadow via filter since text-shadow won't work with clip */
+      filter: drop-shadow(0 1px 1px rgba(255,255,255,0.9));
+    }
+
+    #hero .subtitle {
+      font-size: 17px;
+      color: #666;
+      font-weight: normal;
+      letter-spacing: 0.01em;
+      margin-bottom: 0;
+      /* Italic tagline like Apple product pages */
+      font-style: italic;
+      /* Fade in slightly after the title */
+      animation: pageFadeIn 0.9s ease-out 0.15s both;
+    }
+
+    /* Thin decorative rule below hero */
+    #hero-rule {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg,
+        transparent 0%, #bbb 20%, #999 50%, #bbb 80%, transparent 100%);
+      margin-bottom: 32px;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       SCORE PANEL — glossy metallic pill
+    ───────────────────────────────────────────────────────────── */
+    #score-panel {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+      margin-bottom: 22px;
+    }
+
+    .score-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: linear-gradient(180deg,
+        #f8f8f8 0%, #e2e2e2 45%, #d0d0d0 46%, #dedede 100%);
+      border: 1px solid #aaa;
+      border-radius: 12px;
+      padding: 10px 28px 10px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.9) inset,
+        0 -1px 0 rgba(0,0,0,0.1) inset,
+        0 3px 8px rgba(0,0,0,0.18),
+        0 1px 2px rgba(0,0,0,0.12);
+      position: relative;
+      overflow: hidden;
+      min-width: 120px;
+    }
+
+    /* Glossy top-half shine on score badge */
+    .score-badge::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.15) 100%);
+      border-radius: 12px 12px 0 0;
+      pointer-events: none;
+    }
+
+    .score-label {
+      font-size: 10px;
+      font-weight: bold;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 2px;
+    }
+
+    .score-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #1a1a1a;
+      letter-spacing: -1px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Speed indicator badge */
+    .speed-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: linear-gradient(180deg,
+        #e8f0ff 0%, #c8d8f8 45%, #b8c8f0 46%, #ccdaf8 100%);
+      border: 1px solid #8aa0cc;
+      border-radius: 12px;
+      padding: 10px 22px;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.9) inset,
+        0 3px 8px rgba(0,0,0,0.15);
+      position: relative;
+      overflow: hidden;
+      min-width: 100px;
+    }
+
+    .speed-badge::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.1) 100%);
+      border-radius: 12px 12px 0 0;
+      pointer-events: none;
+    }
+
+    .speed-label {
+      font-size: 10px;
+      font-weight: bold;
+      color: #5570aa;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 2px;
+    }
+
+    .speed-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #2244aa;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       GAME CONTAINER — the outer chrome frame
+    ───────────────────────────────────────────────────────────── */
+    #game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    /* The brushed-metal / polished chrome outer frame */
+    #game-frame {
+      background: linear-gradient(160deg,
+        #d8d8d8 0%, #c0c0c0 25%, #b0b0b0 50%, #c4c4c4 75%, #d8d8d8 100%);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.75) inset,
+        0 0 0 1px rgba(0,0,0,0.3),
+        0 10px 40px rgba(0,0,0,0.4),
+        0 3px 8px rgba(0,0,0,0.25),
+        0 1px 0 rgba(255,255,255,0.5);
+      position: relative;
+    }
+
+    /* Shine strip at top of frame */
+    #game-frame::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 40%;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.05) 100%);
+      border-radius: 18px 18px 0 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       CANVAS WRAPPER — holds canvas + glass overlay
+    ───────────────────────────────────────────────────────────── */
+    #canvas-wrapper {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.4),
+        0 2px 8px rgba(0,0,0,0.3) inset;
+    }
+
+    #game-canvas {
+      display: block;
+      background: #0a1a0a;
+    }
+
+    /* Glass reflection overlay — the top-half gloss on the game board */
+    #glass-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      /* Only covers top ~42% */
+      height: 42%;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.22) 0%,
+        rgba(255,255,255,0.10) 50%,
+        rgba(255,255,255,0.02) 85%,
+        rgba(255,255,255,0.00) 100%);
+      pointer-events: none;
+      z-index: 10;
+      border-radius: 8px 8px 0 0;
+    }
+
+    /* Subtle scanline texture on the canvas for depth */
+    #scanline-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.04) 2px,
+        rgba(0,0,0,0.04) 4px
+      );
+      pointer-events: none;
+      z-index: 9;
+      border-radius: 8px;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       CONTROLS HINT — small keyboard hint below game
+    ───────────────────────────────────────────────────────────── */
+    #controls-hint {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 11px;
+      color: #888;
+      letter-spacing: 0.03em;
+    }
+
+    .key-badge {
+      display: inline-block;
+      background: linear-gradient(180deg, #f5f5f5 0%, #ddd 100%);
+      border: 1px solid #aaa;
+      border-bottom: 2px solid #888;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #444;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+      margin: 0 1px;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       AQUA BUTTON — the iconic 2007 Apple Aqua-style button
+    ───────────────────────────────────────────────────────────── */
+    .aqua-btn {
+      display: inline-block;
+      padding: 8px 26px;
+      font-family: "Lucida Grande", "Lucida Sans Unicode", Helvetica, Arial, sans-serif;
+      font-size: 13px;
+      font-weight: bold;
+      color: #fff;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+      outline: none;
+      /* Multi-stop gradient for the Aqua "gel" look */
+      background: linear-gradient(180deg,
+        #6ab0f5 0%,
+        #3d8de0 45%,
+        #1a6acc 46%,
+        #2e82e8 70%,
+        #5aaaf0 100%);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.5) inset,
+        0 -1px 0 rgba(0,0,0,0.2) inset,
+        0 3px 8px rgba(30,90,200,0.4),
+        0 1px 3px rgba(0,0,0,0.3);
+      text-shadow: 0 -1px 1px rgba(0,0,60,0.4);
+      transition: filter 0.1s, transform 0.1s;
+      letter-spacing: 0.01em;
+      /* Animated shine sweep */
+      animation: btnShine 3.5s ease-in-out infinite;
+    }
+
+    /* The animated shine highlight on the button */
+    .aqua-btn::before {
+      content: "";
+      position: absolute;
+      top: 0; left: -80%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,255,255,0.35) 50%,
+        transparent 100%);
+      transform: skewX(-15deg);
+      animation: btnShineSweep 3.5s ease-in-out infinite;
+    }
+
+    /* Top gloss on the button */
+    .aqua-btn::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.05) 100%);
+      border-radius: 20px 20px 0 0;
+      pointer-events: none;
+    }
+
+    @keyframes btnShineSweep {
+      0%   { left: -80%; }
+      40%  { left: 120%; }
+      100% { left: 120%; }
+    }
+
+    .aqua-btn:hover {
+      filter: brightness(1.1);
+    }
+
+    .aqua-btn:active {
+      filter: brightness(0.92);
+      transform: translateY(1px);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.4) inset,
+        0 1px 4px rgba(30,90,200,0.3);
+    }
+
+    /* Gray/silver variant for secondary actions */
+    .aqua-btn-gray {
+      background: linear-gradient(180deg,
+        #f0f0f0 0%,
+        #d8d8d8 45%,
+        #c8c8c8 46%,
+        #d4d4d4 70%,
+        #e8e8e8 100%);
+      color: #333;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.9) inset,
+        0 -1px 0 rgba(0,0,0,0.1) inset,
+        0 3px 8px rgba(0,0,0,0.2),
+        0 1px 3px rgba(0,0,0,0.15);
+      animation: btnShine 3.5s ease-in-out infinite 1.2s;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       GAME OVER MODAL — polished Apple-style dialog
+    ───────────────────────────────────────────────────────────── */
+    #modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 200;
+      /* Frosted glass blur effect */
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      align-items: center;
+      justify-content: center;
+      animation: backdropFadeIn 0.25s ease-out both;
+    }
+
+    #modal-backdrop.visible {
+      display: flex;
+    }
+
+    @keyframes backdropFadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    #game-over-modal {
+      width: 380px;
+      max-width: 90vw;
+      background: linear-gradient(180deg,
+        #f5f5f5 0%, #e8e8e8 45%, #d8d8d8 46%, #e2e2e2 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.8);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.3),
+        0 20px 60px rgba(0,0,0,0.5),
+        0 8px 20px rgba(0,0,0,0.3),
+        0 1px 0 rgba(255,255,255,0.9) inset;
+      overflow: hidden;
+      position: relative;
+      animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    @keyframes modalSlideIn {
+      from { opacity: 0; transform: scale(0.88) translateY(-20px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);      }
+    }
+
+    /* Top gloss on modal */
+    #game-over-modal::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 46%;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.05) 100%);
+      border-radius: 16px 16px 0 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Title bar of the modal — dark gradient like an OS X window */
+    #modal-titlebar {
+      background: linear-gradient(180deg,
+        #7a7a7a 0%, #5a5a5a 40%, #4a4a4a 50%, #5c5c5c 51%, #6e6e6e 100%);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #333;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Traffic light buttons */
+    .tl-btn {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.25);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .tl-close  { background: radial-gradient(circle at 35% 35%, #ff7070, #cc2222); }
+    .tl-min    { background: radial-gradient(circle at 35% 35%, #ffdd55, #cc9900); }
+    .tl-max    { background: radial-gradient(circle at 35% 35%, #55dd55, #229922); }
+
+    #modal-titlebar span {
+      font-size: 12px;
+      font-weight: bold;
+      color: #e0e0e0;
+      text-shadow: 0 -1px 1px rgba(0,0,0,0.5);
+      margin-left: 4px;
+    }
+
+    #modal-body {
+      padding: 28px 32px 28px;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    #modal-icon {
+      font-size: 48px;
+      line-height: 1;
+      margin-bottom: 12px;
+      /* Subtle drop shadow on the emoji */
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+
+    #modal-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #1a1a1a;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+
+    #modal-subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    #modal-score-display {
+      background: linear-gradient(180deg,
+        #fff 0%, #f0f0f0 45%, #e4e4e4 46%, #ececec 100%);
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 12px 24px;
+      margin: 0 auto 24px;
+      display: inline-block;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.9) inset,
+        0 2px 6px rgba(0,0,0,0.12);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #modal-score-display::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.6) 0%, transparent 100%);
+      border-radius: 10px 10px 0 0;
+    }
+
+    #modal-score-label {
+      font-size: 10px;
+      font-weight: bold;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 2px;
+    }
+
+    #modal-score-value {
+      font-size: 36px;
+      font-weight: bold;
+      color: #1a1a1a;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    #modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       START SCREEN OVERLAY (shown before first game)
+    ───────────────────────────────────────────────────────────── */
+    #start-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 8, 0, 0.82);
+      border-radius: 8px;
+      z-index: 20;
+      gap: 14px;
+      animation: pageFadeIn 0.5s ease-out both;
+    }
+
+    #start-screen h2 {
+      font-size: 22px;
+      font-weight: bold;
+      color: #c8f0c8;
+      letter-spacing: -0.5px;
+      text-shadow: 0 0 12px rgba(80,220,80,0.6);
+    }
+
+    #start-screen p {
+      font-size: 12px;
+      color: #88aa88;
+      text-align: center;
+      line-height: 1.6;
+      max-width: 200px;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       FOOTER — 2007 Apple-style footer
+    ───────────────────────────────────────────────────────────── */
+    #apple-footer {
+      margin-top: 56px;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+      text-align: center;
+    }
+
+    #footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 12px;
+    }
+
+    #footer-links a {
+      font-size: 11px;
+      color: #0066cc;
+      text-decoration: none;
+      padding: 0 10px;
+      border-right: 1px solid #ccc;
+      line-height: 1;
+    }
+
+    #footer-links a:last-child {
+      border-right: none;
+    }
+
+    #footer-links a:hover {
+      text-decoration: underline;
+    }
+
+    #footer-copy {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+
+    #footer-powered {
+      font-size: 11px;
+      color: #0066cc;
+      text-decoration: none;
+    }
+
+    #footer-powered:hover {
+      text-decoration: underline;
+    }
+
+    /* Apple logo in footer (SVG inline) */
+    #footer-apple-logo {
+      display: block;
+      margin: 0 auto 10px;
+      opacity: 0.4;
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       RESPONSIVE ADJUSTMENTS
+    ───────────────────────────────────────────────────────────── */
+    @media (max-width: 680px) {
+      #hero h1 { font-size: 38px; }
+      #hero .subtitle { font-size: 14px; }
+      #apple-nav ul li a { padding: 0 8px; font-size: 10px; }
+      .score-badge, .speed-badge { min-width: 80px; padding: 8px 14px; }
+      .score-value { font-size: 22px; }
+    }
+
+    @media (max-width: 480px) {
+      #hero h1 { font-size: 30px; letter-spacing: -1px; }
+      #score-panel { gap: 16px; }
+      #game-frame { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       NAVIGATION BAR
+  ============================================================ -->
+  <nav id="apple-nav" role="navigation" aria-label="Apple Navigation">
+    <ul>
+      <li><a href="https://www.apple.com" aria-label="Apple">&#63743;</a></li>
+      <li><a href="https://www.apple.com/store">Store</a></li>
+      <li><a href="https://www.apple.com/itunes">iPod + iTunes</a></li>
+      <li><a href="https://www.apple.com/mac">Mac</a></li>
+      <li><a href="https://www.apple.com/quicktime">QuickTime</a></li>
+      <li><a href="https://www.apple.com/support">Support</a></li>
+      <li><a href="https://www.apple.com/macos">Mac OS X</a></li>
+    </ul>
+  </nav>
+
+  <!-- ============================================================
+       PAGE WRAPPER
+  ============================================================ -->
+  <div id="page-wrapper">
+
+    <!-- HERO HEADER -->
+    <header id="hero" role="banner">
+      <h1>Snake</h1>
+      <p class="subtitle">A classic game, reimagined.</p>
+    </header>
+
+    <div id="hero-rule" role="separator" aria-hidden="true"></div>
+
+    <!-- SCORE PANEL -->
+    <div id="score-panel" role="status" aria-live="polite" aria-label="Game Status">
+      <div class="score-badge" aria-label="Score">
+        <span class="score-label">Score</span>
+        <span class="score-value" id="score-display">0</span>
+      </div>
+      <div class="score-badge" aria-label="High Score">
+        <span class="score-label">Best</span>
+        <span class="score-value" id="high-score-display">0</span>
+      </div>
+      <div class="speed-badge" aria-label="Speed Level">
+        <span class="speed-label">Speed</span>
+        <span class="speed-value" id="speed-display">1</span>
+      </div>
+    </div>
+
+    <!-- GAME CONTAINER -->
+    <main id="game-container" role="main">
+      <div id="game-frame">
+        <div id="canvas-wrapper">
+          <!-- The game canvas -->
+          <canvas id="game-canvas" role="img" aria-label="Snake game board"></canvas>
+          <!-- Glass reflection overlay -->
+          <div id="glass-overlay" aria-hidden="true"></div>
+          <!-- Scanline texture -->
+          <div id="scanline-overlay" aria-hidden="true"></div>
+          <!-- Start screen -->
+          <div id="start-screen" role="dialog" aria-label="Start Game">
+            <h2>Ready to Play?</h2>
+            <p>Use arrow keys or WASD<br>to control the snake.</p>
+            <button class="aqua-btn" id="start-btn" aria-label="Start Game">Play Game</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROLS HINT -->
+      <div id="controls-hint" aria-label="Keyboard controls">
+        <span class="key-badge">W</span>
+        <span class="key-badge">A</span>
+        <span class="key-badge">S</span>
+        <span class="key-badge">D</span>
+        &nbsp;or&nbsp;
+        <span class="key-badge">&#8593;</span>
+        <span class="key-badge">&#8592;</span>
+        <span class="key-badge">&#8595;</span>
+        <span class="key-badge">&#8594;</span>
+        &nbsp;&mdash; Move &nbsp;|&nbsp;
+        <span class="key-badge">P</span>
+        &nbsp; Pause
+      </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer id="apple-footer" role="contentinfo">
+      <!-- Inline Apple logo SVG -->
+      <svg id="footer-apple-logo" width="20" height="24" viewBox="0 0 814 1000" aria-hidden="true">
+        <path fill="#555" d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.3-57.4-155.5-127.4C46 405.8 1 279.4 1 158.4c0-109.4 75.6-167.5 148.1-167.5 98.2 0 160.4 64.8 217.3 64.8 54.3 0 127.8-68.2 215.7-68.2 33.5 0 121.9 3.9 190.5 107.5zm-225.1-151.4c10.4-52.6 37.5-107.5 75.3-141.9 37.8-34.4 93.1-61.6 143.2-61.6 3.2 0 6.5.3 9.7.6-3.2 55.9-26 110.8-63.8 149.2-37.8 38.4-90.6 64.2-144.4 64.2-3.5 0-7-.3-20-.5z"/>
+      </svg>
+      <nav id="footer-links" aria-label="Footer Links">
+        <a href="https://www.apple.com/contact/">1-800-MY-APPLE</a>
+        <a href="https://locate.apple.com/">Find a Reseller</a>
+        <a href="https://www.apple.com/sitemap/">Site Map</a>
+        <a href="https://www.apple.com/rss/">RSS Feeds</a>
+        <a href="https://www.apple.com/jobs/us/">Job Opportunities</a>
+        <a href="https://www.apple.com/newsroom/">Media Info</a>
+        <a href="https://www.apple.com/legal/internet-services/terms/site.html">Terms of Use</a>
+        <a href="https://www.apple.com/legal/privacy/">Privacy Policy</a>
+        <a href="https://www.apple.com/contact/">Contact Us</a>
+      </nav>
+      <p id="footer-copy">Copyright &copy; 2007 Apple Computer, Inc. All rights reserved.</p>
+      <a href="#" id="footer-powered">Powered by Mac OS X Server</a>
+    </footer>
+
+  </div><!-- /#page-wrapper -->
+
+  <!-- ============================================================
+       GAME OVER MODAL
+  ============================================================ -->
+  <div id="modal-backdrop" role="dialog" aria-modal="true" aria-label="Game Over">
+    <div id="game-over-modal">
+      <!-- OS X-style title bar -->
+      <div id="modal-titlebar">
+        <div class="tl-btn tl-close"  aria-hidden="true"></div>
+        <div class="tl-btn tl-min"    aria-hidden="true"></div>
+        <div class="tl-btn tl-max"    aria-hidden="true"></div>
+        <span>Game Over</span>
+      </div>
+      <!-- Modal body -->
+      <div id="modal-body">
+        <div id="modal-icon" aria-hidden="true">&#128013;</div>
+        <h2 id="modal-title">Game Over</h2>
+        <p id="modal-subtitle">Your snake has met its end.<br>Better luck next time.</p>
+        <div id="modal-score-display">
+          <div id="modal-score-label">Final Score</div>
+          <div id="modal-score-value">0</div>
+        </div>
+        <div id="modal-buttons">
+          <button class="aqua-btn" id="restart-btn" aria-label="Play Again">Play Again</button>
+          <button class="aqua-btn aqua-btn-gray" id="close-modal-btn" aria-label="Close">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       GAME SCRIPT
+  ============================================================ -->
+  <script>
+    "use strict";
+
+    /* ──────────────────────────────────────────────────────────────
+       CONFIGURATION
+    ────────────────────────────────────────────────────────────── */
+    const CONFIG = {
+      GRID_SIZE:       20,      // Number of cells in each dimension
+      CELL_SIZE:       24,      // Pixels per cell (adjusted for responsiveness)
+      BASE_INTERVAL:   140,     // Base ms between game ticks
+      SPEED_STEP:       5,      // Score points per speed level increase
+      SPEED_REDUCTION:  8,      // Ms to reduce per speed level
+      MIN_INTERVAL:    55,      // Fastest possible tick interval
+    };
+
+    /* ──────────────────────────────────────────────────────────────
+       DOM REFERENCES
+    ────────────────────────────────────────────────────────────── */
+    const canvas          = document.getElementById("game-canvas");
+    const ctx             = canvas.getContext("2d");
+    const scoreDisplay    = document.getElementById("score-display");
+    const highScoreDisplay= document.getElementById("high-score-display");
+    const speedDisplay    = document.getElementById("speed-display");
+    const startScreen     = document.getElementById("start-screen");
+    const startBtn        = document.getElementById("start-btn");
+    const modalBackdrop   = document.getElementById("modal-backdrop");
+    const modalScoreValue = document.getElementById("modal-score-value");
+    const restartBtn      = document.getElementById("restart-btn");
+    const closeModalBtn   = document.getElementById("close-modal-btn");
+
+    /* ──────────────────────────────────────────────────────────────
+       RESPONSIVE CANVAS SIZING
+       Fit the canvas to the available viewport width on smaller screens
+    ────────────────────────────────────────────────────────────── */
+    function computeCellSize() {
+      // Available width = min(viewport, 980) minus frame padding (32px) and some margin
+      const available = Math.min(window.innerWidth - 80, 980 - 80);
+      // Ideal size is CONFIG.GRID_SIZE * CONFIG.CELL_SIZE
+      const ideal = CONFIG.GRID_SIZE * CONFIG.CELL_SIZE;
+      if (available >= ideal) return CONFIG.CELL_SIZE;
+      // Scale down to fit, keeping integer cell sizes for crisp rendering
+      return Math.max(12, Math.floor(available / CONFIG.GRID_SIZE));
+    }
+
+    let CELL = computeCellSize();
+    let CANVAS_SIZE = CONFIG.GRID_SIZE * CELL;
+
+    function resizeCanvas() {
+      CELL = computeCellSize();
+      CANVAS_SIZE = CONFIG.GRID_SIZE * CELL;
+      canvas.width  = CANVAS_SIZE;
+      canvas.height = CANVAS_SIZE;
+    }
+
+    resizeCanvas();
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      if (!gameState.running) {
+        drawBoard();   // Redraw the static board on resize
+      }
+    });
+
+    /* ──────────────────────────────────────────────────────────────
+       GAME STATE
+    ────────────────────────────────────────────────────────────── */
+    const gameState = {
+      snake:       [],      // Array of {x, y} from head (index 0) to tail
+      direction:   { x: 1, y: 0 },   // Current movement direction
+      nextDir:     { x: 1, y: 0 },   // Buffered next direction (prevents input delay)
+      food:        { x: 0, y: 0 },   // Current food position
+      score:       0,
+      // Load persisted high score from localStorage (works offline)
+      highScore:   parseInt(localStorage.getItem("snakeHighScore") || "0", 10),
+      speedLevel:  1,
+      running:     false,
+      paused:      false,
+      gameOver:    false,
+      tickTimer:   null,
+    };
+
+    // Initialise the high score display from persisted value
+    highScoreDisplay.textContent = gameState.highScore;
+
+    /* ──────────────────────────────────────────────────────────────
+       COLOUR PALETTE — dark green terminal aesthetic for the board,
+       contrasting with the silver Apple chrome around it
+    ────────────────────────────────────────────────────────────── */
+    const COLORS = {
+      // Board background — deep dark green
+      BG:           "#0a1a0a",
+      BG_GRID:      "#0d200d",   // Slightly lighter for grid lines
+
+      // Snake body gradient stops (head → tail)
+      SNAKE_HEAD:   "#44ee44",
+      SNAKE_BODY_1: "#28cc28",
+      SNAKE_BODY_2: "#1a9a1a",
+      SNAKE_TAIL:   "#126012",
+
+      // Snake highlight (top-left gloss on each segment)
+      SNAKE_SHINE:  "rgba(255,255,255,0.28)",
+
+      // Food
+      FOOD_CORE:    "#ff3a3a",
+      FOOD_SHINE:   "rgba(255,200,200,0.7)",
+      FOOD_GLOW:    "rgba(255,60,60,0.35)",
+
+      // Score flash
+      SCORE_FLASH:  "rgba(68,238,68,0.15)",
+    };
+
+    /* ──────────────────────────────────────────────────────────────
+       INITIALISE / RESET GAME
+    ────────────────────────────────────────────────────────────── */
+    function initGame() {
+      // Place snake in the middle, 3 segments long, moving right
+      const mid = Math.floor(CONFIG.GRID_SIZE / 2);
+      gameState.snake = [
+        { x: mid,     y: mid },
+        { x: mid - 1, y: mid },
+        { x: mid - 2, y: mid },
+      ];
+      gameState.direction = { x: 1, y: 0 };
+      gameState.nextDir   = { x: 1, y: 0 };
+      gameState.score      = 0;
+      gameState.speedLevel = 1;
+      gameState.running    = true;
+      gameState.paused     = false;
+      gameState.gameOver   = false;
+
+      updateScoreDisplay();
+      spawnFood();
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       FOOD SPAWNING — guaranteed not to overlap the snake
+    ────────────────────────────────────────────────────────────── */
+    function spawnFood() {
+      const G = CONFIG.GRID_SIZE;
+      // Build a set of occupied cells for O(1) lookup
+      const occupied = new Set(gameState.snake.map(s => `${s.x},${s.y}`));
+
+      // Collect all free cells
+      const free = [];
+      for (let x = 0; x < G; x++) {
+        for (let y = 0; y < G; y++) {
+          if (!occupied.has(`${x},${y}`)) free.push({ x, y });
+        }
+      }
+
+      // If no free cells (extremely unlikely), game is won — treat as game over
+      if (free.length === 0) {
+        triggerGameOver();
+        return;
+      }
+
+      // Pick a random free cell
+      const pick = free[Math.floor(Math.random() * free.length)];
+      gameState.food = pick;
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       GAME TICK — called on each interval
+    ────────────────────────────────────────────────────────────── */
+    function gameTick() {
+      if (!gameState.running || gameState.paused) return;
+
+      // Apply buffered direction
+      gameState.direction = { ...gameState.nextDir };
+
+      // Calculate new head position
+      const head = gameState.snake[0];
+      const newHead = {
+        x: (head.x + gameState.direction.x + CONFIG.GRID_SIZE) % CONFIG.GRID_SIZE,
+        y: (head.y + gameState.direction.y + CONFIG.GRID_SIZE) % CONFIG.GRID_SIZE,
+      };
+
+      // Check self-collision (new head hits any body segment)
+      const hitSelf = gameState.snake.some(
+        seg => seg.x === newHead.x && seg.y === newHead.y
+      );
+      if (hitSelf) {
+        triggerGameOver();
+        return;
+      }
+
+      // Move snake: prepend new head
+      gameState.snake.unshift(newHead);
+
+      // Check food collision
+      const ateFood = newHead.x === gameState.food.x && newHead.y === gameState.food.y;
+      if (ateFood) {
+        // Grow: do NOT remove tail
+        gameState.score++;
+        updateScoreDisplay();
+        updateSpeed();
+        spawnFood();
+        // Flash effect — draw a brief highlight
+        flashScoreEffect();
+      } else {
+        // No growth: remove tail
+        gameState.snake.pop();
+      }
+
+      // Render the new state
+      drawBoard();
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       SPEED MANAGEMENT
+    ────────────────────────────────────────────────────────────── */
+    function updateSpeed() {
+      const newLevel = 1 + Math.floor(gameState.score / CONFIG.SPEED_STEP);
+      if (newLevel !== gameState.speedLevel) {
+        gameState.speedLevel = newLevel;
+        speedDisplay.textContent = newLevel;
+        // Restart the tick timer with new interval
+        restartTickTimer();
+      }
+    }
+
+    function getTickInterval() {
+      const reduction = (gameState.speedLevel - 1) * CONFIG.SPEED_REDUCTION;
+      return Math.max(CONFIG.MIN_INTERVAL, CONFIG.BASE_INTERVAL - reduction);
+    }
+
+    function restartTickTimer() {
+      if (gameState.tickTimer) clearInterval(gameState.tickTimer);
+      gameState.tickTimer = setInterval(gameTick, getTickInterval());
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       SCORE DISPLAY UPDATE
+    ────────────────────────────────────────────────────────────── */
+    function updateScoreDisplay() {
+      scoreDisplay.textContent = gameState.score;
+      speedDisplay.textContent = gameState.speedLevel;
+      if (gameState.score > gameState.highScore) {
+        gameState.highScore = gameState.score;
+        highScoreDisplay.textContent = gameState.highScore;
+        // Persist to localStorage so the high score survives page reloads
+        try { localStorage.setItem("snakeHighScore", gameState.highScore); } catch(e) {}
+      }
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       SCORE FLASH EFFECT — brief green glow on the board
+    ────────────────────────────────────────────────────────────── */
+    let flashAlpha = 0;
+    let flashRAF   = null;
+
+    function flashScoreEffect() {
+      flashAlpha = 1;
+      if (flashRAF) cancelAnimationFrame(flashRAF);
+      animateFlash();
+    }
+
+    function animateFlash() {
+      if (flashAlpha <= 0) return;
+      flashAlpha -= 0.08;
+      drawBoard();  // Redraw with flash overlay
+      flashRAF = requestAnimationFrame(animateFlash);
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       GAME OVER
+    ────────────────────────────────────────────────────────────── */
+    function triggerGameOver() {
+      gameState.running  = false;
+      gameState.gameOver = true;
+      if (gameState.tickTimer) clearInterval(gameState.tickTimer);
+
+      // Draw the final board state with death animation
+      drawBoard();
+      drawDeathOverlay();
+
+      // Show modal after a short delay for dramatic effect
+      setTimeout(showGameOverModal, 600);
+    }
+
+    function showGameOverModal() {
+      modalScoreValue.textContent = gameState.score;
+      // Update subtitle if a new high score was achieved
+      const subtitle = document.getElementById("modal-subtitle");
+      if (gameState.score > 0 && gameState.score === gameState.highScore) {
+        subtitle.innerHTML = "New high score! Congratulations.<br>Can you beat it next time?";
+        document.getElementById("modal-icon").textContent = "\uD83C\uDFC6";
+      } else {
+        subtitle.innerHTML = "Your snake has met its end.<br>Better luck next time.";
+        document.getElementById("modal-icon").innerHTML = "&#128013;";
+      }
+      modalBackdrop.classList.add("visible");
+      restartBtn.focus();
+    }
+
+    function hideGameOverModal() {
+      modalBackdrop.classList.remove("visible");
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       DRAWING — all rendering logic
+    ────────────────────────────────────────────────────────────── */
+
+    /** Draw the full game board */
+    function drawBoard() {
+      const G = CONFIG.GRID_SIZE;
+
+      // 1. Background
+      ctx.fillStyle = COLORS.BG;
+      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+      // 2. Subtle grid lines
+      ctx.strokeStyle = COLORS.BG_GRID;
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= G; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * CELL, 0);
+        ctx.lineTo(i * CELL, CANVAS_SIZE);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i * CELL);
+        ctx.lineTo(CANVAS_SIZE, i * CELL);
+        ctx.stroke();
+      }
+
+      // 3. Food
+      drawFood();
+
+      // 4. Snake
+      drawSnake();
+
+      // 5. Score flash overlay
+      if (flashAlpha > 0) {
+        ctx.fillStyle = `rgba(68,238,68,${flashAlpha * 0.12})`;
+        ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      }
+    }
+
+    /** Draw the food item with a glossy, glowing appearance */
+    function drawFood() {
+      const f  = gameState.food;
+      const cx = f.x * CELL + CELL / 2;
+      const cy = f.y * CELL + CELL / 2;
+      const r  = CELL * 0.38;
+
+      // Outer glow
+      const glow = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r * 1.8);
+      glow.addColorStop(0, COLORS.FOOD_GLOW);
+      glow.addColorStop(1, "transparent");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core sphere gradient
+      const grad = ctx.createRadialGradient(
+        cx - r * 0.3, cy - r * 0.3, r * 0.05,
+        cx, cy, r
+      );
+      grad.addColorStop(0, "#ff8888");
+      grad.addColorStop(0.4, COLORS.FOOD_CORE);
+      grad.addColorStop(1, "#880000");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Specular highlight
+      const shine = ctx.createRadialGradient(
+        cx - r * 0.3, cy - r * 0.35, 0,
+        cx - r * 0.1, cy - r * 0.1, r * 0.55
+      );
+      shine.addColorStop(0, COLORS.FOOD_SHINE);
+      shine.addColorStop(1, "transparent");
+      ctx.fillStyle = shine;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tiny stem
+      ctx.strokeStyle = "#228822";
+      ctx.lineWidth = 1.5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(cx + r * 0.1, cy - r * 0.85);
+      ctx.quadraticCurveTo(cx + r * 0.5, cy - r * 1.3, cx + r * 0.7, cy - r * 1.1);
+      ctx.stroke();
+    }
+
+    /** Draw the snake with gradient colouring and glossy segments */
+    function drawSnake() {
+      const snake = gameState.snake;
+      const len   = snake.length;
+
+      for (let i = len - 1; i >= 0; i--) {
+        const seg = snake[i];
+        const t   = i / Math.max(len - 1, 1);  // 0 = head, 1 = tail
+
+        // Interpolate colour from head to tail
+        const color = interpolateSnakeColor(t);
+
+        const x = seg.x * CELL;
+        const y = seg.y * CELL;
+        const pad = 1.5;  // Small gap between segments for definition
+
+        // Segment background
+        ctx.fillStyle = color;
+        roundRect(ctx, x + pad, y + pad, CELL - pad * 2, CELL - pad * 2, 4);
+        ctx.fill();
+
+        // Glossy top-left shine on each segment
+        const shine = ctx.createLinearGradient(x + pad, y + pad, x + pad, y + CELL * 0.55);
+        shine.addColorStop(0, COLORS.SNAKE_SHINE);
+        shine.addColorStop(1, "transparent");
+        ctx.fillStyle = shine;
+        roundRect(ctx, x + pad, y + pad, CELL - pad * 2, (CELL - pad * 2) * 0.5, 4);
+        ctx.fill();
+
+        // Head: draw eyes
+        if (i === 0) {
+          drawSnakeHead(seg, gameState.direction);
+        }
+      }
+    }
+
+    /** Draw the snake head with eyes oriented toward movement direction */
+    function drawSnakeHead(seg, dir) {
+      const x  = seg.x * CELL;
+      const y  = seg.y * CELL;
+      const cx = x + CELL / 2;
+      const cy = y + CELL / 2;
+
+      // Eye positions depend on direction
+      let eye1, eye2;
+      const eo = CELL * 0.22;  // Eye offset from center
+      const ea = CELL * 0.14;  // Eye offset along perpendicular axis
+
+      if (dir.x === 1) {        // Moving right
+        eye1 = { x: cx + eo, y: cy - ea };
+        eye2 = { x: cx + eo, y: cy + ea };
+      } else if (dir.x === -1) { // Moving left
+        eye1 = { x: cx - eo, y: cy - ea };
+        eye2 = { x: cx - eo, y: cy + ea };
+      } else if (dir.y === -1) { // Moving up
+        eye1 = { x: cx - ea, y: cy - eo };
+        eye2 = { x: cx + ea, y: cy - eo };
+      } else {                   // Moving down
+        eye1 = { x: cx - ea, y: cy + eo };
+        eye2 = { x: cx + ea, y: cy + eo };
+      }
+
+      const eyeR = CELL * 0.1;
+
+      // White sclera
+      [eye1, eye2].forEach(e => {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, eyeR, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Dark pupil (slightly offset toward direction for "looking" effect)
+      const pupilOffset = eyeR * 0.3;
+      [eye1, eye2].forEach(e => {
+        ctx.fillStyle = "#111";
+        ctx.beginPath();
+        ctx.arc(
+          e.x + dir.x * pupilOffset,
+          e.y + dir.y * pupilOffset,
+          eyeR * 0.55, 0, Math.PI * 2
+        );
+        ctx.fill();
+      });
+    }
+
+    /** Interpolate between head and tail colours */
+    function interpolateSnakeColor(t) {
+      // t: 0 = head (bright green), 1 = tail (dark green)
+      const r1 = 0x44, g1 = 0xee, b1 = 0x44;  // Head: #44ee44
+      const r2 = 0x12, g2 = 0x60, b2 = 0x12;  // Tail: #126012
+      const r = Math.round(r1 + (r2 - r1) * t);
+      const g = Math.round(g1 + (g2 - g1) * t);
+      const b = Math.round(b1 + (b2 - b1) * t);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    /** Draw the death overlay — red vignette flash */
+    function drawDeathOverlay() {
+      // Red radial vignette
+      const grad = ctx.createRadialGradient(
+        CANVAS_SIZE / 2, CANVAS_SIZE / 2, CANVAS_SIZE * 0.1,
+        CANVAS_SIZE / 2, CANVAS_SIZE / 2, CANVAS_SIZE * 0.75
+      );
+      grad.addColorStop(0, "transparent");
+      grad.addColorStop(1, "rgba(180,0,0,0.45)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+      // "Game Over" text on canvas
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = `bold ${Math.round(CELL * 1.1)}px "Lucida Grande", Helvetica, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(255,0,0,0.6)";
+      ctx.shadowBlur = 12;
+      ctx.fillText("GAME OVER", CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+      ctx.shadowBlur = 0;
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       UTILITY: Rounded rectangle path helper
+    ────────────────────────────────────────────────────────────── */
+    function roundRect(ctx, x, y, w, h, r) {
+      if (w < 2 * r) r = w / 2;
+      if (h < 2 * r) r = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y,     x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x,     y + h, r);
+      ctx.arcTo(x,     y + h, x,     y,     r);
+      ctx.arcTo(x,     y,     x + w, y,     r);
+      ctx.closePath();
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       INPUT HANDLING — arrow keys + WASD, with direction buffering
+       to prevent the "reverse into yourself" bug and input delay
+    ────────────────────────────────────────────────────────────── */
+    document.addEventListener("keydown", (e) => {
+      // Prevent arrow keys from scrolling the page during gameplay
+      if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) {
+        if (gameState.running) e.preventDefault();
+      }
+
+      // Pause toggle
+      if (e.key === "p" || e.key === "P") {
+        if (gameState.running && !gameState.gameOver) togglePause();
+        return;
+      }
+
+      // Start game on first keypress if on start screen
+      if (!gameState.running && !gameState.gameOver) {
+        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d","W","A","S","D"].includes(e.key)) {
+          startGame();
+        }
+      }
+
+      if (!gameState.running || gameState.paused) return;
+
+      const cur = gameState.direction;
+
+      switch (e.key) {
+        case "ArrowUp":    case "w": case "W":
+          if (cur.y !== 1)  gameState.nextDir = { x: 0, y: -1 };
+          break;
+        case "ArrowDown":  case "s": case "S":
+          if (cur.y !== -1) gameState.nextDir = { x: 0, y: 1 };
+          break;
+        case "ArrowLeft":  case "a": case "A":
+          if (cur.x !== 1)  gameState.nextDir = { x: -1, y: 0 };
+          break;
+        case "ArrowRight": case "d": case "D":
+          if (cur.x !== -1) gameState.nextDir = { x: 1, y: 0 };
+          break;
+      }
+    });
+
+    /* ──────────────────────────────────────────────────────────────
+       PAUSE
+    ────────────────────────────────────────────────────────────── */
+    function togglePause() {
+      gameState.paused = !gameState.paused;
+      if (gameState.paused) {
+        // Draw pause overlay
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.font = `bold ${Math.round(CELL * 1.1)}px "Lucida Grande", Helvetica, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("PAUSED", CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+      } else {
+        drawBoard();
+      }
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       GAME LIFECYCLE
+    ────────────────────────────────────────────────────────────── */
+    function startGame() {
+      // Hide start screen
+      startScreen.style.display = "none";
+      hideGameOverModal();
+      initGame();
+      drawBoard();
+      restartTickTimer();
+    }
+
+    function restartGame() {
+      hideGameOverModal();
+      // Brief delay so modal fade-out is visible
+      setTimeout(() => {
+        initGame();
+        drawBoard();
+        restartTickTimer();
+      }, 180);
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       BUTTON EVENT LISTENERS
+    ────────────────────────────────────────────────────────────── */
+    startBtn.addEventListener("click", startGame);
+    restartBtn.addEventListener("click", restartGame);
+    closeModalBtn.addEventListener("click", () => {
+      hideGameOverModal();
+      // Show start screen again
+      startScreen.style.display = "flex";
+      // Reset canvas to blank board
+      drawBoard();
+    });
+
+    // Close modal on backdrop click
+    modalBackdrop.addEventListener("click", (e) => {
+      if (e.target === modalBackdrop) {
+        hideGameOverModal();
+        startScreen.style.display = "flex";
+        drawBoard();
+      }
+    });
+
+    // Keyboard shortcut: Enter/Space to restart when modal is visible
+    document.addEventListener("keydown", (e) => {
+      if (modalBackdrop.classList.contains("visible")) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          restartGame();
+        }
+        if (e.key === "Escape") {
+          hideGameOverModal();
+          startScreen.style.display = "flex";
+          drawBoard();
+        }
+      }
+    });
+
+    /* ──────────────────────────────────────────────────────────────
+       INITIAL RENDER — draw the empty board on page load
+    ────────────────────────────────────────────────────────────── */
+    (function initialRender() {
+      // Draw a decorative "idle" board
+      ctx.fillStyle = COLORS.BG;
+      ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+      // Grid
+      ctx.strokeStyle = COLORS.BG_GRID;
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= CONFIG.GRID_SIZE; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * CELL, 0);
+        ctx.lineTo(i * CELL, CANVAS_SIZE);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i * CELL);
+        ctx.lineTo(CANVAS_SIZE, i * CELL);
+        ctx.stroke();
+      }
+    })();
+
+  </script>
+</body>
+</html>

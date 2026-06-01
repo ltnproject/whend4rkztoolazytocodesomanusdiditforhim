@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Snake — Random Ahh Website by D4rkz</title>
+  <title>Snake — Apple</title>
 
   <!-- ============================================================
        SNAKE — A Classic Game, Reimagined.
@@ -35,7 +35,13 @@
         linear-gradient(180deg, #d4d4d4 0%, #ebebeb 120px, #e0e0e0 100%);
       background-attachment: fixed;
       min-height: 100vh;
-      /* Fade-in the entire page on load */
+      margin: 0;
+      padding: 0;
+      /* Removing animation from body as it can break fixed positioning in some browsers */
+    }
+
+    /* Content wrapper for the page fade-in animation */
+    #content-anim-wrapper {
       animation: pageFadeIn 0.7s ease-out both;
     }
 
@@ -956,10 +962,11 @@
 
   <!-- why are you so neardy just know go sub duh -->
 
-  <!-- ============================================================
-       NAVIGATION BAR
-  ============================================================ -->
-  <nav id="apple-nav" role="navigation" aria-label="Apple Navigation">
+  <div id="content-anim-wrapper">
+    <!-- ============================================================
+         NAVIGATION BAR
+    ============================================================ -->
+    <nav id="apple-nav" role="navigation" aria-label="Apple Navigation">
     <ul>
       <li><a href="https://www.apple.com" aria-label="Apple">&#63743;</a></li>
       <li><a href="https://www.apple.com/store">Store</a></li>
@@ -1070,6 +1077,7 @@
     </footer>
 
   </div><!-- /#page-wrapper -->
+  </div><!-- /#content-anim-wrapper -->
 
   <!-- ============================================================
        GAME OVER MODAL
